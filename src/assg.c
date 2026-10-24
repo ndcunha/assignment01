@@ -44,28 +44,47 @@ static char *dup_str(const char *s)
 
 static int cmp_int(const void *a, const void *b)
 {
-    int x = *(const int *)a, y = *(const int *)b;
-    return (x > y) - (x < y);
+    int x = *(const int *)a;
+    int y = *(const int *)b;
+    if (x < y) return -1;
+    if (x > y) return 1;
+    return 0;
 }
 
-static long long days_from_civil(int y, int m, int d)
+static int is_leap(int y)
 {
-    y -= (m <= 2);
-    long long era = (y >= 0 ? y : y - 399) / 400;
-    long long yoe = y - era * 400;
-    long long doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
-    long long doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    return era * 146097 + doe - 719468;
+    return (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
 }
 
 static int days_in_month(int y, int m)
 {
     static const int dm[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    int leap = (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
-    if (m == 2 && leap) {
+    if (m == 2 && is_leap(y)) {
         return 29;
     }
     return dm[m - 1];
+}
+
+static long long days_from_civil(int y, int m, int d)
+{
+    long long days = 0;
+    int i;
+    
+    if (y >= 1970) {
+        for (i = 1970; i < y; i++) {
+            days += is_leap(i) ? 366 : 365;
+        }
+    } else {
+        for (i = y; i < 1970; i++) {
+            days -= is_leap(i) ? 366 : 365;
+        }
+    }
+
+    for (i = 1; i < m; i++) {
+        days += days_in_month(y, i);
+    }
+    days += (d - 1);
+    return days;
 }
 
 static int all_digits(const char *s, int from, int to)
